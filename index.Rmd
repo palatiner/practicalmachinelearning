@@ -2,29 +2,50 @@
 title: "Practical Machine Learning Course Project"
 author: "Mark Zollner"
 date: "February 28, 2017"
-output: html_document
+output: 
+  html_document: 
+    keep_md: yes
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+## Purpose 
+This purpose of this project to create a machine learning model that reads in exercise data and predicts
+the manner in which the participants completed the activity. There are six ways the exercise could have been done:
+sitting-down, standing-up, standing, walking, or sitting. A random forest model, which can be used for classification, was chosen for this task.  
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+The data set is located here: https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv. The first step was 
+to get rid of the columns of data that were empty, had "NA" entries, or "!DIV/0" errors. Then the data was divided into a
+training (75%) and testing (25%) set.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r}
+library(caret)
+data <- read.csv("C:/pml-training.csv")
+data <- subset(data, select = c(classe, gyros_forearm_x, gyros_forearm_y, gyros_forearm_z, accel_forearm_x, accel_forearm_y, accel_forearm_z, magnet_forearm_x, magnet_forearm_y, magnet_forearm_z, total_accel_forearm, gyros_dumbbell_x, gyros_dumbbell_y, gyros_dumbbell_z, accel_dumbbell_x, accel_dumbbell_y, accel_dumbbell_z, magnet_dumbbell_x, magnet_dumbbell_y,magnet_dumbbell_z, roll_forearm, pitch_forearm, yaw_forearm, total_accel_dumbbell, roll_dumbbell, pitch_dumbbell, yaw_dumbbell, gyros_arm_x, gyros_arm_y, gyros_arm_z, accel_arm_x, accel_arm_y, accel_arm_z, magnet_arm_x, magnet_arm_y, magnet_arm_z, gyros_belt_x, gyros_belt_y, gyros_belt_z, accel_belt_x, accel_belt_y, accel_belt_z, magnet_belt_x, magnet_belt_y, magnet_belt_z, roll_arm, pitch_arm, yaw_arm, total_accel_arm, roll_belt, pitch_belt, yaw_belt, total_accel_belt, num_window))
+inTrain <- createDataPartition(y = data$classe, p = 0.75, list = FALSE)
+training <- data[inTrain, ]
+testing <- data[-inTrain, ]
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+Cross validation with ten folds was used for training the model. Ten was picked since this is a generally recommended value. Then the model was created with the "train" function. 
+```{r}
+train_control <- trainControl(method = "cv", number = 10)
+rf_model <- train(classe ~ ., data = training, trControl = train_control, method = "rf")
+```
+The output from the model shows that it's very accurate, although this is just based on the training set. The classification errors for each of the exercises are very low, all below 1%.
+```{r}
+rf_model$results
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+## Determining the out of sample error
+The confusion matrix shows that the out of sample error rate is also very low.
+```{r}
+pred <- predict(rf_model, testing)
+confusionMatrix(pred, testing$classe)
+```
+## Conclusion
+The random forest model created to predict the manner in which the exercise was completed is very accurate.
+
+
